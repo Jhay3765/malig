@@ -12,7 +12,7 @@ export default function NavBar() {
 
   const navigation = [
     { name: "Patient Care", href: "/" },
-    { name: "Data Analysis", href: "/patient-care" },
+    // { name: "Data Analysis", href: "/patient-care" },
   ];
 
   return (

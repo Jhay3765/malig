@@ -26,10 +26,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  protein1: z.string().min(1, { message: "Protein 1 is required" }),
-  protein2: z.string().min(1, { message: "Protein 2 is required" }),
-  protein3: z.string().min(1, { message: "Protein 3 is required" }),
-  protein4: z.string().min(1, { message: "Protein 4 is required" }),
+  protein1: z.string().max(6, { message: "Max 6 characters" }),
+  protein2: z.string().max(6, { message: "Max 6 characters" }),
+  protein3: z.string().max(6, { message: "Max 6 characters" }),
+  protein4: z.string().max(6, { message: "Max 6 characters" }),
   her2Status: z.enum(["Positive", "Negative"]),
   erStatus: z.enum(["Positive", "Negative"]),
   prStatus: z.enum(["Positive", "Negative"]),
@@ -56,24 +56,45 @@ export default function ProteinForm() {
     },
   });
 
+  function analyzeProteins(values: z.infer<typeof formSchema>) {
+    const proteins = [
+      values.protein1,
+      values.protein2,
+      values.protein3,
+      values.protein4,
+    ];
+    return proteins
+      .map((p, i) => {
+        const num = parseFloat(p);
+        if (!isNaN(num)) {
+          if (num > 1) return `Protein ${i + 0.5} levels are elevated.`;
+          if (num < -1)
+            return `Protein ${i + 0.5} levels are lower than normal.`;
+        }
+        return `Protein ${i + 1} is within a healthy range.`;
+      })
+      .join(" ");
+  }
+
+  function generateResponse(values: z.infer<typeof formSchema>) {
+    let response = analyzeProteins(values);
+    if (values.erStatus === "Positive" && values.prStatus === "Positive") {
+      response +=
+        " Since both ER and PR are positive, hormone therapy could be an effective way to slow or block the growth of breast cancer cells. Other options like surgery, chemotherapy, and radiation therapy may also help in treatment.";
+    }
+    if (values.her2Status === "Positive") {
+      response +=
+        " HER2-positive breast cancer responds well to targeted therapies, like trastuzumab (Herceptin), which can help block cancer cell growth.";
+    }
+    return response;
+  }
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setResponse(null);
-    try {
-      // Replace with your actual API endpoint
-      const response = await fetch("/api/submit-protein-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const result = await response.json();
-      setResponse(result.message);
-    } catch (error) {
-      console.error("Error:", error);
-      setResponse("An error occurred while processing your request.");
-    } finally {
+    setTimeout(() => {
+      setResponse(generateResponse(values));
       setIsLoading(false);
-    }
+    }, 2000);
   }
 
   return (
@@ -81,133 +102,56 @@ export default function ProteinForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <FormField
-              control={form.control}
-              name="protein1"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Protein 1</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Protein 1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="protein2"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Protein 2</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Protein 2" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="protein3"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Protein 3</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Protein 3" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="protein4"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Protein 4</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Protein 4" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {["protein1", "protein2", "protein3", "protein4"].map((name, i) => (
+              <FormField
+                key={name}
+                control={form.control}
+                name={name as "protein1"}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{`Protein ${i + 1}`}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={`Protein ${i + 1}`}
+                        maxLength={6}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <FormField
-              control={form.control}
-              name="her2Status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>HER2 Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select HER2 status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Positive">Positive</SelectItem>
-                      <SelectItem value="Negative">Negative</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="erStatus"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ER Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select ER status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Positive">Positive</SelectItem>
-                      <SelectItem value="Negative">Negative</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="prStatus"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>PR Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select PR status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Positive">Positive</SelectItem>
-                      <SelectItem value="Negative">Negative</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {["her2Status", "erStatus", "prStatus"].map((name) => (
+              <FormField
+                key={name}
+                control={form.control}
+                name={name as "her2Status"}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{name.replace("Status", " Status")}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={`Select ${name}`} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Positive">Positive</SelectItem>
+                        <SelectItem value="Negative">Negative</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
             <FormField
               control={form.control}
               name="gender"
@@ -255,8 +199,7 @@ export default function ProteinForm() {
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
               </>
             ) : (
               "Submit"
@@ -270,8 +213,8 @@ export default function ProteinForm() {
           <CardContent className="pt-6">
             {isLoading ? (
               <div className="flex items-center justify-center">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                AI is analyzing the data...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> AI is
+                analyzing the data...
               </div>
             ) : (
               <p className="text-sm">{response}</p>
